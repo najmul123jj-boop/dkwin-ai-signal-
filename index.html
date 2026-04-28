@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>dkwin</title>
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --bg: rgba(0, 0, 0, 0.95);
+            --gold: #f8ff00; /* BIG - Yellow */
+            --green: #00ff00;
+            --red: #ff3131;  /* SMALL - Red */
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #000; overflow: hidden; }
+        
+        iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 1; }
+
+        /* Super Slim Panel Design */
+        .premium-panel {
+            position: absolute; top: 15px; left: 15px; 
+            width: 110px; /* Reduced width */
+            background: var(--bg); border-radius: 10px;
+            z-index: 9999; touch-action: none;
+            backdrop-filter: blur(8px);
+            padding: 2px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+            border: 1.5px solid var(--green); 
+        }
+
+        .inner-box { padding: 4px 2px; }
+
+        /* Login UI */
+        #pass-input { 
+            width: 90%; font-size: 11px; background: #111; border: 1px solid #333; 
+            color: #fff; text-align: center; border-radius: 4px; margin-bottom: 5px; padding: 4px 0; outline: none;
+        }
+        #login-btn { 
+            background: var(--green); border: none; color: #000; 
+            font-size: 10px; font-weight: bold; padding: 4px; border-radius: 4px; width: 90%; cursor: pointer;
+        }
+
+        /* Signal Section (Very Compact) */
+        #signal-content { display: none; }
+        
+        #live-clock {
+            font-size: 12px; 
+            color: var(--green);
+            font-family: monospace;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .market-tag {
+            font-size: 9px;
+            color: #aaa;
+            text-transform: uppercase;
+            display: block;
+        }
+
+        #timer-val { 
+            font-size: 14px; 
+            color: var(--neon); 
+            font-weight: bold;
+        }
+
+        #prediction-result { 
+            font-size: 20px; 
+            font-weight: 900; 
+            padding: 2px 0;
+            min-height: 28px;
+            text-transform: uppercase;
+        }
+
+        .loading-dots { color: #444 !important; font-size: 16px; animation: blink 0.8s infinite; }
+        
+        /* Prediction Colors */
+        .big { color: var(--gold) !important; text-shadow: 0 0 8px var(--gold); }
+        .small { color: var(--red) !important; text-shadow: 0 0 8px var(--red); }
+
+        @keyframes blink { 50% { opacity: 0.3; } }
+        .urgent { color: var(--red) !important; }
+
+    </style>
+</head>
+<body onload="startMod()">
+
+<iframe src="https://dkwin9.com/#/register?invitationCode=75518598003"></iframe>
+
+<div class="premium-panel" id="panel">
+    <div class="inner-box">
+        <div id="auth-area">
+            <input type="password" id="pass-input" placeholder="KEY">
+            <button id="login-btn" onclick="checkPass()">LOGIN</button>
+        </div>
+
+        <div id="signal-content">
+            <span id="live-clock">00:00:00</span>
+            <span class="market-tag"></span>
+            <span id="timer-val">00s</span>
+            <div id="prediction-result">...</div>
+        </div>
+    </div>
+</div>
+const firebaseConfig = {
+  apiKey: "AIzaSyBPBQOeApFZQwGX8G4mZxhY5C2jjN6VWmU",
+  authDomain: "dkwin-panel-ai.firebaseapp.com",
+  databaseURL: "https://dkwin-panel-ai-default-rtdb.firebaseio.com",
+  projectId: "dkwin-panel-ai",
+  storageBucket: "dkwin-panel-ai.firebasestorage.app",
+  messagingSenderId: "925573387640",
+  appId: "1:925573387640:web:8faf648b0b89933c89e48d",
+  measurementId: "G-X3ZFCRWEH8"
+};
+
+<script>
+let lastInterval = -1;
+const correctPass = "VIP100"; 
+
+function checkPass() {
+    const input = document.getElementById('pass-input').value;
+    if(input === correctPass) {
+        document.getElementById('auth-area').style.display = 'none';
+        document.getElementById('signal-content').style.display = 'block';
+    } else {
+        alert("Incorrect Access Key!");
+    }
+}
+
+function startMod() {
+    setInterval(() => {
+        const now = new Date();
+        
+        // 1. Digital Clock
+        const h = now.getHours().toString().padStart(2, '0');
+        const m = now.getMinutes().toString().padStart(2, '0');
+        const s = now.getSeconds().toString().padStart(2, '0');
+        document.getElementById('live-clock').textContent = `${h}:${m}:${s}`;
+
+        // 2. 30s Logic (Timer & Signal)
+        const seconds = now.getSeconds();
+        const remaining = 30 - (seconds % 30);
+        const currentBatch = Math.floor((now.getTime() / 1000) / 30);
+        
+        const timerEl = document.getElementById('timer-val');
+        const resEl = document.getElementById('prediction-result');
+        
+        timerEl.textContent = remaining.toString().padStart(2, '0') + "s";
+        
+        // Color warning for last 5 seconds
+        if(remaining <= 5) timerEl.classList.add('urgent');
+        else timerEl.classList.remove('urgent');
+
+        // 3. Result Generation
+        if (remaining > 27 || remaining <= 2) {
+            resEl.textContent = "•••";
+            resEl.className = "loading-dots";
+        } else {
+            if (currentBatch !== lastInterval) {
+                lastInterval = currentBatch;
+                const isBig = Math.random() > 0.5; 
+                resEl.textContent = isBig ? "BIG" : "SMALL";
+                resEl.className = isBig ? "big" : "small";
+            }
+        }
+    }, 1000);
+}
+
+// Mobile Drag Logic
+const panel = document.getElementById('panel');
+let isDragging = false, startX, startY;
+
+panel.addEventListener('touchstart', (e) => {
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    isDragging = true;
+    startX = e.touches[0].clientX - panel.offsetLeft;
+    startY = e.touches[0].clientY - panel.offsetTop;
+}, {passive: false});
+
+panel.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    panel.style.left = (e.touches[0].clientX - startX) + 'px';
+    panel.style.top = (e.touches[0].clientY - startY) + 'px';
+}, {passive: false});
+
+panel.addEventListener('touchend', () => isDragging = false);
+</script>
+
+</body>
+</html>
